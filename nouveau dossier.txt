@@ -1,0 +1,955 @@
+# 🚗 PROMPT COMPLET — AUTOPRESTIGE
+## Site de Vente de Voitures Neuves & d'Occasion
+### Stack : Next.js 14 (App Router) · Firebase · Tailwind CSS · Framer Motion
+
+---
+
+## 🎯 CONTEXTE DU PROJET
+
+Tu es un développeur senior full-stack. Tu dois créer un site web complet et professionnel
+de vente de voitures neuves et d'occasion appelé **AutoPrestige**. Le site a une esthétique
+luxe/sombre avec des accents dorés, des animations cinématiques et une expérience utilisateur
+haut de gamme.
+
+---
+
+## 🛠️ STACK TECHNIQUE OBLIGATOIRE
+
+- **Framework** : Next.js 14 avec App Router (dossier `/app`)
+- **Backend / Base de données** : Firebase (Firestore + Storage + Authentication)
+- **Styles** : Tailwind CSS + CSS Modules pour les animations custom
+- **Animations** : Framer Motion
+- **Formulaires** : React Hook Form + Zod (validation)
+- **Images** : Next/Image + Firebase Storage
+- **Auth Admin** : Firebase Authentication (email/password)
+- **Fonts** : Google Fonts — `Cormorant Garamond` (display) + `DM Sans` (body)
+- **Icons** : Lucide React
+- **Notifications** : react-hot-toast
+
+---
+
+## 📁 STRUCTURE DU PROJET
+
+```
+autoprestige/
+├── app/
+│   ├── layout.tsx                  # Layout global (nav + footer + providers)
+│   ├── page.tsx                    # Page d'accueil (Hero)
+│   ├── catalogue/
+│   │   ├── page.tsx                # Catalogue complet
+│   │   └── [id]/
+│   │       └── page.tsx            # Page détail d'un véhicule
+│   ├── neufs/
+│   │   └── page.tsx                # Catalogue véhicules neufs
+│   ├── occasions/
+│   │   └── page.tsx                # Catalogue véhicules d'occasion
+│   ├── contact/
+│   │   └── page.tsx                # Page contact
+│   ├── admin/
+│   │   ├── layout.tsx              # Layout admin protégé
+│   │   ├── login/
+│   │   │   └── page.tsx            # Page login admin
+│   │   ├── dashboard/
+│   │   │   └── page.tsx            # Tableau de bord
+│   │   ├── vehicules/
+│   │   │   ├── page.tsx            # Liste des véhicules (admin)
+│   │   │   ├── ajouter/
+│   │   │   │   └── page.tsx        # Formulaire ajout véhicule
+│   │   │   └── [id]/
+│   │   │       └── page.tsx        # Édition d'un véhicule
+│   │   └── messages/
+│   │       └── page.tsx            # Messages de contact reçus
+│   └── api/
+│       └── contact/
+│           └── route.ts            # API route pour l'envoi de messages
+├── components/
+│   ├── layout/
+│   │   ├── Navbar.tsx
+│   │   ├── Footer.tsx
+│   │   └── AdminSidebar.tsx
+│   ├── home/
+│   │   ├── HeroSection.tsx
+│   │   ├── FeaturedCars.tsx
+│   │   ├── StatsSection.tsx
+│   │   └── TestimonialsSection.tsx
+│   ├── catalogue/
+│   │   ├── CarCard.tsx
+│   │   ├── CarGrid.tsx
+│   │   ├── FilterBar.tsx
+│   │   ├── SearchInput.tsx
+│   │   └── CarDetail.tsx
+│   ├── admin/
+│   │   ├── CarForm.tsx
+│   │   ├── StatsCards.tsx
+│   │   ├── InventoryTable.tsx
+│   │   └── ImageUploader.tsx
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Badge.tsx
+│       ├── Modal.tsx
+│       ├── Toast.tsx
+│       └── LoadingSpinner.tsx
+├── lib/
+│   ├── firebase/
+│   │   ├── config.ts               # Initialisation Firebase
+│   │   ├── firestore.ts            # Fonctions CRUD Firestore
+│   │   ├── storage.ts              # Upload images Firebase Storage
+│   │   └── auth.ts                 # Logique authentification
+│   ├── hooks/
+│   │   ├── useCars.ts              # Hook pour récupérer les voitures
+│   │   ├── useFilters.ts           # Hook pour la logique de filtres
+│   │   └── useAdmin.ts             # Hook pour la session admin
+│   ├── types/
+│   │   └── index.ts                # Tous les types TypeScript
+│   └── utils/
+│       ├── formatPrice.ts
+│       └── formatKm.ts
+├── public/
+│   └── images/
+├── styles/
+│   └── globals.css                 # Variables CSS + styles globaux
+├── middleware.ts                    # Protection routes admin
+├── .env.local                      # Variables d'environnement Firebase
+├── tailwind.config.ts
+└── next.config.ts
+```
+
+---
+
+## 🗃️ MODÈLE DE DONNÉES FIREBASE (Firestore)
+
+### Collection `vehicules`
+
+```typescript
+// lib/types/index.ts
+
+export type VehiculeType = 'neuf' | 'occasion';
+export type Carburant = 'Essence' | 'Diesel' | 'Électrique' | 'Hybride' | 'GPL';
+export type Transmission = 'Automatique' | 'Manuelle';
+export type StatutVehicule = 'disponible' | 'vendu' | 'réservé';
+
+export interface Vehicule {
+  id: string;                         // Auto-généré par Firestore
+  marque: string;                     // ex: "BMW"
+  modele: string;                     // ex: "Série 5"
+  annee: number;                      // ex: 2024
+  prix: number;                       // ex: 62900
+  type: VehiculeType;
+  carburant: Carburant;
+  puissance: number;                  // en chevaux
+  kilometrage: number;                // 0 pour neuf
+  transmission: Transmission;
+  couleur: string;
+  description: string;
+  statut: StatutVehicule;
+  enPromo: boolean;
+  prixBarré?: number;                 // Prix avant promo
+  images: string[];                   // URLs Firebase Storage
+  imageprincipale: string;            // URL image principale
+  caracteristiques: {                 // Caractéristiques extras
+    nombrePortes?: number;
+    nombrePlaces?: number;
+    climatisation?: boolean;
+    gps?: boolean;
+    bluetooth?: boolean;
+    camera?: boolean;
+    toit_ouvrant?: boolean;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+### Collection `messages`
+
+```typescript
+export interface Message {
+  id: string;
+  nom: string;
+  email: string;
+  telephone?: string;
+  sujet: string;
+  message: string;
+  vehiculeId?: string;                // Si lié à un véhicule
+  vehiculeNom?: string;
+  lu: boolean;
+  createdAt: Timestamp;
+}
+```
+
+### Collection `admin_users` (optionnel si un seul admin)
+
+```typescript
+export interface AdminUser {
+  uid: string;
+  email: string;
+  nom: string;
+  role: 'super_admin' | 'editeur';
+}
+```
+
+---
+
+## 🔥 CONFIGURATION FIREBASE
+
+### `.env.local`
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+### `lib/firebase/config.ts`
+
+```typescript
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const auth = getAuth(app);
+export default app;
+```
+
+### `lib/firebase/firestore.ts`
+
+```typescript
+import {
+  collection, doc, addDoc, updateDoc, deleteDoc,
+  getDocs, getDoc, query, where, orderBy, limit,
+  Timestamp, serverTimestamp
+} from 'firebase/firestore';
+import { db } from './config';
+import type { Vehicule, Message } from '../types';
+
+// ─── VÉHICULES ───────────────────────────────────────────
+
+export async function getVehicules(filters?: {
+  type?: 'neuf' | 'occasion';
+  marque?: string;
+  prixMin?: number;
+  prixMax?: number;
+}): Promise<Vehicule[]> {
+  let q = query(collection(db, 'vehicules'), orderBy('createdAt', 'desc'));
+  if (filters?.type) q = query(q, where('type', '==', filters.type));
+  if (filters?.marque) q = query(q, where('marque', '==', filters.marque));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicule));
+}
+
+export async function getVehiculeById(id: string): Promise<Vehicule | null> {
+  const snap = await getDoc(doc(db, 'vehicules', id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() } as Vehicule;
+}
+
+export async function addVehicule(data: Omit<Vehicule, 'id' | 'createdAt' | 'updatedAt'>) {
+  return await addDoc(collection(db, 'vehicules'), {
+    ...data,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateVehicule(id: string, data: Partial<Vehicule>) {
+  return await updateDoc(doc(db, 'vehicules', id), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteVehicule(id: string) {
+  return await deleteDoc(doc(db, 'vehicules', id));
+}
+
+export async function getFeaturedVehicules(limit_n = 6): Promise<Vehicule[]> {
+  const q = query(
+    collection(db, 'vehicules'),
+    where('statut', '==', 'disponible'),
+    orderBy('createdAt', 'desc'),
+    limit(limit_n)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Vehicule));
+}
+
+// ─── MESSAGES ────────────────────────────────────────────
+
+export async function addMessage(data: Omit<Message, 'id' | 'createdAt' | 'lu'>) {
+  return await addDoc(collection(db, 'messages'), {
+    ...data, lu: false, createdAt: serverTimestamp(),
+  });
+}
+
+export async function getMessages(): Promise<Message[]> {
+  const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Message));
+}
+
+export async function markMessageAsRead(id: string) {
+  return await updateDoc(doc(db, 'messages', id), { lu: true });
+}
+```
+
+### `lib/firebase/storage.ts`
+
+```typescript
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { storage } from './config';
+
+export async function uploadVehiculeImage(file: File, vehiculeId: string): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const fileName = `vehicules/${vehiculeId}/${Date.now()}.${ext}`;
+  const storageRef = ref(storage, fileName);
+  await uploadBytes(storageRef, file);
+  return await getDownloadURL(storageRef);
+}
+
+export async function deleteVehiculeImage(url: string) {
+  const storageRef = ref(storage, url);
+  await deleteObject(storageRef);
+}
+```
+
+### `lib/firebase/auth.ts`
+
+```typescript
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { auth } from './config';
+
+export async function loginAdmin(email: string, password: string) {
+  return await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function logoutAdmin() {
+  return await signOut(auth);
+}
+
+export function onAuthChange(callback: (user: any) => void) {
+  return onAuthStateChanged(auth, callback);
+}
+```
+
+---
+
+## 🎨 DESIGN SYSTEM
+
+### `styles/globals.css`
+
+```css
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8C96A;
+  --dark: #0A0A0B;
+  --dark-2: #111114;
+  --dark-3: #1A1A1F;
+  --dark-4: #222228;
+  --gray: #888888;
+  --light: #F5F3EE;
+  --white: #FFFFFF;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--dark);
+  color: var(--light);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--dark-3) 25%, var(--dark-4) 50%, var(--dark-3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+```
+
+### `tailwind.config.ts`
+
+```typescript
+import type { Config } from 'tailwindcss';
+
+const config: Config = {
+  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        gold:  { DEFAULT: '#C9A84C', light: '#E8C96A' },
+        dark:  { DEFAULT: '#0A0A0B', 2: '#111114', 3: '#1A1A1F', 4: '#222228' },
+        light: { DEFAULT: '#F5F3EE' },
+      },
+      fontFamily: {
+        display: ['Cormorant Garamond', 'serif'],
+        body:    ['DM Sans', 'sans-serif'],
+      },
+      animation: {
+        'fade-up':   'fadeUp 0.6s ease forwards',
+        'fade-in':   'fadeIn 0.4s ease forwards',
+      },
+    },
+  },
+  plugins: [],
+};
+
+export default config;
+```
+
+---
+
+## 📄 PAGES — SPÉCIFICATIONS DÉTAILLÉES
+
+---
+
+### PAGE 1 — Accueil `app/page.tsx`
+
+**Composants à inclure dans l'ordre :**
+
+1. **`<HeroSection />`**
+   - Fond sombre avec grille de points dorés (CSS grid-background)
+   - Titre principal : `"L'Art de Conduire l'Excellence"` (Cormorant Garamond, 88px, italic doré)
+   - Sous-titre muted en arrière-plan
+   - Description courte (14px, couleur muted)
+   - Deux boutons CTA : "Véhicules Neufs" (fond doré) et "Occasions Prestige" (outline)
+   - Statistiques en bas : 340+ véhicules · 26 marques · 98% satisfaction
+   - Ligne décorative verticale à droite
+   - Indicateur de scroll animé
+   - Animations : `motion.div` avec `initial={{ opacity:0, y:24 }}` et `animate={{ opacity:1, y:0 }}`
+     avec des `delay` progressifs (0.2, 0.4, 0.6, 0.8, 1.0)
+
+2. **`<FeaturedCars />`**
+   - Titre : "Sélection du Moment"
+   - Récupère 6 véhicules depuis Firestore via `getFeaturedVehicules()`
+   - Grille 3 colonnes
+   - Composant `<CarCard />` pour chaque véhicule
+   - Skeleton loading pendant le chargement
+
+3. **`<StatsSection />`**
+   - 4 blocs : Stock / Marques / Clients satisfaits / Années d'expérience
+   - Animation de compteur au scroll (Framer Motion + useInView)
+   - Fond légèrement plus clair (dark-2)
+
+4. **`<TestimonialsSection />`**
+   - 3 avis clients avec nom, note en étoiles et texte
+   - Données statiques (hardcodées)
+   - Carrousel horizontal ou grille selon largeur d'écran
+
+---
+
+### PAGE 2 — Catalogue `app/catalogue/page.tsx`
+
+**Logique complète :**
+
+```typescript
+// Récupérer tous les véhicules côté client avec useEffect
+// Appliquer les filtres entièrement côté client (pas de re-fetch)
+// URL params pour les filtres (Next.js useSearchParams)
+```
+
+**Barre de filtres `<FilterBar />`** :
+- Onglets : Tous / Neuf / Occasion
+- Input de recherche (marque, modèle, année)
+- Select : Marque
+- Select : Tranche de prix (< 20k / 20–50k / 50–100k / > 100k)
+- Select : Carburant
+- Select : Tri (Prix ↑ / Prix ↓ / Année récente)
+- Compteur de résultats en temps réel
+- Bouton "Réinitialiser les filtres"
+
+**Grille `<CarGrid />`** :
+- 3 colonnes desktop, 2 tablette, 1 mobile
+- Skeleton cards pendant loading
+- Message "Aucun résultat" avec icône si vide
+
+**`<CarCard />`** — Structure :
+```
+┌─────────────────────────────┐
+│  [IMAGE PRINCIPALE]          │
+│  Badge (Neuf/Occasion/Promo) │
+│  ♡ Favori                   │
+├─────────────────────────────┤
+│  MARQUE (doré, petite casse) │
+│  Modèle (Display, 22px)      │
+│  Année · Carburant           │
+│  ─────────────────────────── │
+│  Puissance | Boîte | Km      │
+│  ─────────────────────────── │
+│  62 900 €       [Voir →]    │
+└─────────────────────────────┘
+```
+- Hover : translateY(-6px) + scale image(1.05)
+- Clic → naviguer vers `/catalogue/[id]`
+
+---
+
+### PAGE 3 — Détail Véhicule `app/catalogue/[id]/page.tsx`
+
+**Layout :**
+- Grille 50/50 : Image à gauche (grande, fond dark-2), infos à droite
+- Bouton retour au catalogue
+
+**Colonne gauche :**
+- Image principale grande (Next/Image)
+- Galerie miniatures cliquables en dessous (si plusieurs images)
+- Badge type (Neuf / Occasion)
+
+**Colonne droite :**
+```
+MARQUE (label doré, 11px)
+Modèle (Display, 64px, light)
+Description courte
+─────────────────────────────
+Prix : 62 900 € (Display 52px doré)
+─────────────────────────────
+Grille 2x3 specs :
+  Année | Carburant | Puissance
+  Km    | Boîte     | Couleur
+─────────────────────────────
+[ Demander un essai ]  [ Contacter ]
+─────────────────────────────
+Caractéristiques (liste icons)
+  ✓ GPS  ✓ Bluetooth  ✓ Caméra...
+```
+
+**SEO :**
+```typescript
+export async function generateMetadata({ params }) {
+  const car = await getVehiculeById(params.id);
+  return {
+    title: `${car.marque} ${car.modele} ${car.annee} — AutoPrestige`,
+    description: car.description,
+    openGraph: { images: [car.imageprincipale] },
+  };
+}
+```
+
+---
+
+### PAGE 4 — Contact `app/contact/page.tsx`
+
+**Formulaire (React Hook Form + Zod) :**
+```typescript
+const schema = z.object({
+  nom:       z.string().min(2),
+  email:     z.string().email(),
+  telephone: z.string().optional(),
+  sujet:     z.enum(['achat', 'essai', 'financement', 'autre']),
+  message:   z.string().min(10),
+});
+```
+
+À la soumission → appel `addMessage()` vers Firestore.
+Confirmation toast "Message envoyé avec succès".
+
+Infos de contact à droite :
+- Adresse, téléphone, email, horaires
+- Carte Google Maps embarquée (iframe)
+
+---
+
+### PAGE 5 — Admin Login `app/admin/login/page.tsx`
+
+- Page centrée, fond dark
+- Logo AutoPrestige en haut
+- Champs email + mot de passe
+- Bouton "Connexion"
+- Appel `loginAdmin()` → redirect vers `/admin/dashboard`
+- Message d'erreur si credentials incorrects
+
+---
+
+### PAGE 6 — Admin Dashboard `app/admin/dashboard/page.tsx`
+
+**4 Stat Cards** (données temps réel Firestore) :
+- Nombre total de véhicules
+- Véhicules neufs
+- Véhicules d'occasion
+- Valeur totale du stock (somme des prix)
+
+**Tableau des derniers véhicules ajoutés** (5 derniers)
+
+**Tableau des derniers messages** (5 derniers, badge "Non lu")
+
+---
+
+### PAGE 7 — Admin Ajouter Véhicule `app/admin/vehicules/ajouter/page.tsx`
+
+**Formulaire complet en deux colonnes :**
+
+Section 1 : Informations générales
+```
+Marque *          | Modèle *
+Année             | Prix (€) *
+Type *            | Statut *
+Carburant         | Puissance (ch)
+Kilométrage (km)  | Transmission
+Couleur           | En promo ?
+Prix barré (si promo)
+```
+
+Section 2 : Description
+```
+Textarea description longue
+```
+
+Section 3 : Upload Images
+```typescript
+// Composant ImageUploader
+// - Zone drag & drop
+// - Aperçu miniatures
+// - Upload vers Firebase Storage via uploadVehiculeImage()
+// - Image principale sélectionnable
+// - Suppression d'image
+```
+
+Section 4 : Caractéristiques
+```
+[ ] Climatisation  [ ] GPS  [ ] Bluetooth
+[ ] Caméra recul   [ ] Toit ouvrant
+Nb portes: [4]     Nb places: [5]
+```
+
+**Validation Zod côté client** sur tous les champs obligatoires.
+
+**À la soumission :**
+1. Upload toutes les images vers Firebase Storage
+2. Récupérer les URLs
+3. Appel `addVehicule()` avec toutes les données
+4. Toast succès + redirect vers `/admin/vehicules`
+
+---
+
+### PAGE 8 — Admin Inventaire `app/admin/vehicules/page.tsx`
+
+**Tableau complet :**
+```
+Image | Marque | Modèle | Année | Type | Prix | Km | Statut | Actions
+```
+
+- Pagination (10 par page)
+- Tri par colonne
+- Filtre par type (Neuf/Occasion) et statut
+- Boutons : Voir / Modifier / Supprimer
+- Confirmation avant suppression (modal)
+- Bouton changer statut (Disponible → Vendu → Réservé)
+
+---
+
+### PAGE 9 — Admin Messages `app/admin/messages/page.tsx`
+
+- Liste des messages reçus
+- Badge "Non lu" en rouge
+- Clic → ouvre le message complet (modal ou page dédiée)
+- Bouton "Marquer comme lu"
+- Info véhicule lié si applicable
+
+---
+
+## 🔒 MIDDLEWARE — Protection Admin
+
+```typescript
+// middleware.ts
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const session = request.cookies.get('admin-session');
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
+  const isLoginPage = request.nextUrl.pathname === '/admin/login';
+
+  if (isAdminRoute && !isLoginPage && !session) {
+    return NextResponse.redirect(new URL('/admin/login', request.url));
+  }
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/admin/:path*'],
+};
+```
+
+---
+
+## 🧩 COMPOSANTS UI RÉUTILISABLES
+
+### `components/ui/Button.tsx`
+```typescript
+interface ButtonProps {
+  variant: 'primary' | 'secondary' | 'outline' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+// primary → fond doré, texte dark
+// secondary → fond transparent, bordure dorée, texte doré
+// outline → fond transparent, bordure blanche/muted
+// danger → fond rouge (pour suppression)
+```
+
+### `components/ui/Badge.tsx`
+```typescript
+// Variantes : 'neuf' (doré) | 'occasion' (gris) | 'promo' (rouge) | 'vendu' (muted)
+```
+
+### `components/ui/Modal.tsx`
+```typescript
+// Overlay sombre + boîte centrée
+// Props : isOpen, onClose, title, children
+// Animation Framer Motion : scale(0.95)→scale(1) + opacity
+```
+
+### `components/catalogue/FilterBar.tsx`
+```typescript
+interface FilterState {
+  search: string;
+  type: 'all' | 'neuf' | 'occasion';
+  marque: string;
+  carburant: string;
+  prixMin: number;
+  prixMax: number;
+  sort: 'price-asc' | 'price-desc' | 'year-desc' | '';
+}
+// Synchroniser les filtres avec les URL search params
+// useRouter + useSearchParams de Next.js
+```
+
+### `components/admin/ImageUploader.tsx`
+```typescript
+// Zone drag & drop avec react-dropzone
+// Aperçu des images sélectionnées
+// Bouton X pour supprimer une image
+// Indicateur de l'image principale
+// Progress bar pendant l'upload
+// Limite : 10 images max, 5MB par image
+```
+
+---
+
+## 🔗 HOOKS PERSONNALISÉS
+
+### `lib/hooks/useCars.ts`
+```typescript
+export function useCars(filters?: FilterState) {
+  const [cars, setCars] = useState<Vehicule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    getVehicules(filters)
+      .then(setCars)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [JSON.stringify(filters)]);
+
+  return { cars, loading, error };
+}
+```
+
+### `lib/hooks/useAdmin.ts`
+```typescript
+export function useAdmin() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthChange(u => {
+      setUser(u);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  return { user, loading, isAdmin: !!user };
+}
+```
+
+---
+
+## 🎭 ANIMATIONS (Framer Motion)
+
+```typescript
+// Variants réutilisables
+
+export const fadeUpVariant = {
+  hidden:  { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
+};
+
+export const staggerContainer = {
+  hidden:  {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+export const cardVariant = {
+  hidden:  { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+};
+
+export const scaleOnHover = {
+  whileHover: { scale: 1.02, y: -4 },
+  transition: { type: 'spring', stiffness: 300 },
+};
+```
+
+---
+
+## 📦 PACKAGE.JSON — DÉPENDANCES
+
+```json
+{
+  "dependencies": {
+    "next": "14.x",
+    "react": "^18",
+    "react-dom": "^18",
+    "typescript": "^5",
+    "firebase": "^10",
+    "framer-motion": "^11",
+    "react-hook-form": "^7",
+    "zod": "^3",
+    "@hookform/resolvers": "^3",
+    "react-dropzone": "^14",
+    "react-hot-toast": "^2",
+    "lucide-react": "^0.400",
+    "clsx": "^2",
+    "tailwind-merge": "^2"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3",
+    "autoprefixer": "^10",
+    "postcss": "^8",
+    "@types/react": "^18",
+    "@types/node": "^20"
+  }
+}
+```
+
+---
+
+## ⚡ RÈGLES D'IMPLÉMENTATION
+
+1. **Tout le code est en TypeScript strict** — aucun `any` implicite
+2. **Composants Server vs Client** :
+   - Pages qui fetch au chargement → `async` Server Components
+   - Pages avec filtres/state → `'use client'`
+   - Admin forms → toujours `'use client'`
+3. **Images** : Toujours `next/image` avec `fill` ou dimensions explicites
+4. **Loading states** : Skeleton UI sur toutes les pages qui fetchent
+5. **Error handling** : try/catch sur tous les appels Firebase + toast d'erreur
+6. **Responsive** : Mobile-first, breakpoints : sm(640) md(768) lg(1024) xl(1280)
+7. **Accessibilité** : `aria-label` sur tous les boutons icon-only, `alt` sur toutes les images
+8. **SEO** : `generateMetadata()` sur toutes les pages publiques
+9. **Performance** : `React.memo` sur `CarCard`, lazy loading images hors viewport
+
+---
+
+## 🚀 INSTRUCTIONS DE DÉMARRAGE
+
+```bash
+# 1. Créer le projet
+npx create-next-app@latest autoprestige --typescript --tailwind --app --src-dir=false
+
+# 2. Installer les dépendances
+npm install firebase framer-motion react-hook-form zod @hookform/resolvers react-dropzone react-hot-toast lucide-react clsx tailwind-merge
+
+# 3. Configurer Firebase
+# → Créer un projet sur console.firebase.google.com
+# → Activer Firestore, Storage, Authentication (email/password)
+# → Copier les credentials dans .env.local
+
+# 4. Créer un compte admin dans Firebase Console
+# → Authentication → Ajouter un utilisateur manuellement
+
+# 5. Configurer les règles Firestore
+# → Lecture publique sur "vehicules"
+# → Écriture restreinte aux admins authentifiés
+
+# 6. Lancer en développement
+npm run dev
+```
+
+### Règles Firestore (firebase console)
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /vehicules/{id} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /messages/{id} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+  }
+}
+```
+
+### Règles Firebase Storage
+
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /vehicules/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
+```
+
+---
+
+## ✅ CHECKLIST FINALE
+
+- [ ] Toutes les pages publiques sont accessibles sans auth
+- [ ] Les pages `/admin/*` redirigent vers `/admin/login` si non connecté
+- [ ] Le formulaire d'ajout valide tous les champs requis
+- [ ] Les images uploadées apparaissent dans Firestore + Storage
+- [ ] Les filtres du catalogue fonctionnent en combinaison
+- [ ] Les pages détail ont des URLs propres et du SEO
+- [ ] Le site est fully responsive (mobile, tablette, desktop)
+- [ ] Les skeleton loaders s'affichent pendant le chargement Firebase
+- [ ] Les toasts s'affichent pour les succès et les erreurs
+- [ ] La suppression d'un véhicule efface aussi ses images dans Storage
+```
