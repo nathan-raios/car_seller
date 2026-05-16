@@ -35,12 +35,21 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
+NEXT_PUBLIC_CLOUDINARY_FOLDER=vehicules
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
+
+- Si tu utilises Cloudinary uniquement pour les images, laisse la configuration Firebase pour Firestore et Auth.
 
 4. **Activer Authentication dans Firebase**
 - Aller à Authentication → Sign-in method
 - Activer Email/Password
 - Créer un compte admin manuellement dans Firebase Console
+
+> Note: la collection `vehicules` est créée automatiquement lors du premier ajout de véhicule dans Firestore.
 
 5. **Configurer les règles Firestore**
 

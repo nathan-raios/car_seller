@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,6 +45,15 @@ export const CarForm: React.FC<CarFormProps> = ({ vehiculeId = 'new' }) => {
   const [images, setImages] = useState<string[]>([]);
   const [mainImage, setMainImage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const tempVehiculeId = useMemo(
+    () =>
+      vehiculeId === 'new'
+        ? typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}`
+        : vehiculeId,
+    [vehiculeId]
+  );
 
   const {
     register,
@@ -301,7 +310,7 @@ export const CarForm: React.FC<CarFormProps> = ({ vehiculeId = 'new' }) => {
       <div className="bg-dark-2 p-6 rounded-xl border border-dark-3">
         <h2 className="text-2xl font-semibold text-light mb-6">Images *</h2>
         <ImageUploader
-          vehiculeId={vehiculeId}
+          vehiculeId={tempVehiculeId}
           onImagesChange={setImages}
           onMainImageChange={setMainImage}
         />

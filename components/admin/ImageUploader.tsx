@@ -43,7 +43,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       toast.success(`${uploadedUrls.length} image(s) uploadée(s)`);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Erreur lors de l\'upload');
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Erreur lors de l'upload: ${message}`);
     } finally {
       setUploading(false);
     }
@@ -51,6 +52,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
+    onDropRejected: (fileRejections) => {
+      const messages = fileRejections.flatMap((rejection) =>
+        rejection.errors.map((error) => `${rejection.file.name}: ${error.message}`)
+      );
+      toast.error(messages.join(' • ') || 'Fichier invalide');
+    },
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     disabled: uploading || images.length >= 10,
   });
@@ -123,6 +130,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
                 <button
                   type="button"
+                  aria-label="Supprimer l'image"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRemoveImage(index);
